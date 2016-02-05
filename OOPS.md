@@ -169,7 +169,7 @@ Golang supports multiple inheritance. When it comes to composition, it is quite 
 ```go
 type Animal struct {
 	Name  string
-    	Genre string	
+	Genre string	
 }
 
 func (animal Animal) GetName() {
@@ -204,7 +204,8 @@ func main() {
 cat Felis Catus 
 */
 ```
-[Example 4 PlayGround ^](https://play.golang.org/p/fekvUnYTz_)
+[Example 3 PlayGround ^](https://play.golang.org/p/fekvUnYTz_)
+
 Golang allows you to create a "Diamond" inheritance diagram, and only will complain when you try to access a parent's class field ambiguously. As Golang inheritance is resolved at compile time, Golang compiler could alert the ambiguity at compile time.
 ```go
 cat.GetName() // This will produce a compile time error because of the ambiguity (ambiguous selector cat.GetName)
@@ -219,10 +220,306 @@ var cat Cat = Cat{Animal{"cat", "mammal"}, 3}
 var catref Animal = cat // Compile time error: cannot use cat (type Cat) as type Animal in assignment
 catref.MakeSound()
 ```
-[Example 3 PlayGround ^](https://play.golang.org/p/PDucPJjRK-)
+[Example 5 PlayGround ^](https://play.golang.org/p/PDucPJjRK-)
 
-Now what exactly that makes OOPs distinct from procedural language object's behaviour is the __runtime polymorphism__, or dynamic method dispatch.  This allows extending usage of method by allowing it for various types. What means that ``Cat`` and ``Dog`` both can be referred as an ``Animal``. Now whenever I'm referring a ``Cat`` using an ``Animal`` type and invoking a ``Animal``'s behaviour, it should dispatch the ``Cat``'s behaviour rather than the ``Animal``'s one. To achive this Golang __interface__ is used. 
+Now what exactly that makes OOPs distinct from procedural language object's behaviour is the __runtime polymorphism__, or dynamic method dispatch.  This allows extending usage of method by allowing it for various types by implementing the behaviour defined by interface. What means that ``Cat`` and ``Dog`` both can be referred as an ``Animal``. Now whenever I'm referring a ``Cat`` using an ``Animal`` type and invoking a ``Animal``'s behaviour, it should dispatch the ``Cat``'s behaviour rather than the ``Animal``'s one. To achive this Golang __interface__ is used. 
 
 Golang interfaces are available as a type in Golang. It is a class, with no fields or properties, and all virtual method. Interface can be used as variable type and a parameter type, or a return type. A Golang interface could be embedded (inherited) into another interface. Any structure that defines a behaviour defined by an interface, implements the interface.
+
+```go
+type Animal interface {
+        TellName()
+        MakeSound()
+}
+
+type Mammal interface {
+        Animal
+        FeedMilk()
+}
+
+type Fish interface {
+        Animal
+        Swim()
+}
+
+type AnimalProperties struct {
+        Name  string
+        Sound string
+}
+
+type Cat struct {
+        AnimalProperties
+        MeaoStrength int
+}
+
+type Dog struct {
+        AnimalProperties
+        BarkStrength int
+}
+
+type GoldFish struct {
+        AnimalProperties
+        SwmSpeed int
+}
+
+func (animalp AnimalProperties) TellName() {
+        fmt.Printf("I am %s\n", animalp.Name)
+}
+
+func (cat Cat) MakeSound() {
+        fmt.Printf("%s at %d !\n", cat.AnimalProperties.Sound, cat.MeaoStrength)
+}
+
+func (cat Cat) FeedMilk() {
+        fmt.Printf("I feed my kitty !\n")
+}
+
+func (dog Dog) MakeSound() {
+        fmt.Printf("%s at %d !\n", dog.AnimalProperties.Sound, dog.BarkStrength)
+}
+
+func (dog Dog) FeedMilk() {
+        fmt.Printf("I feed my puppy !\n")
+}
+
+func (fish GoldFish) MakeSound() {
+        fmt.Printf("%s %s !\n", fish.AnimalProperties.Sound, fish.AnimalProperties.Sound)
+}
+
+func (fish GoldFish) Swim() {
+        fmt.Printf("I can Swim at %d !\n", fish.SwmSpeed)
+}
+
+func main() {
+	var cat Cat = Cat{AnimalProperties{"cat", "meowwwww"}, 10}
+    	var dog Dog = Dog{AnimalProperties{"dog", "Vouuuuuu"}, 3}
+    	var gfish GoldFish = GoldFish{AnimalProperties{"goldfish", "Bloob"}, 3}
+	/* Generalising to Animal interface type */
+	var animal Animal = cat
+	animal.TellName()
+	animal.MakeSound()
+	animal = dog
+	animal.TellName()
+	animal.MakeSound()
+	animal = gfish
+	animal.TellName()
+	animal.MakeSound()
+	/* Generalising to Mammal and using Animal behaviour as it includes it */
+	var mammal Mammal = cat
+	mammal.TellName()
+	mammal.MakeSound()
+	mammal.FeedMilk()
+	mammal = dog
+	mammal.TellName()
+	mammal.MakeSound()
+	mammal.FeedMilk()
+	/* Mammal could be generalised to Animal */
+	animal = mammal
+	animal.TellName()
+	animal.MakeSound()
+	/* Generalising to fish */
+	var fish Fish = gfish
+	fish.TellName()
+	fish.MakeSound()
+	fish.Swim()
+	/* Fish could be generalised to Animal */
+	animal = fish
+	animal.TellName()
+	animal.MakeSound()
+}
+/* Output: 
+I am cat
+meowwwww at 10 !
+I am dog
+Vouuuuuu at 3 !
+I am goldfish
+Bloob Bloob !
+I am cat
+meowwwww at 10 !
+I feed my kitty !
+I am dog
+Vouuuuuu at 3 !
+I feed my puppy !
+I am dog
+Vouuuuuu at 3 !
+I am goldfish
+Bloob Bloob !
+I can Swim at 3 !
+I am goldfish
+Bloob Bloob !
+*/
+```
+[Example 6 PlayGround ^](https://play.golang.org/p/ARJRzmKKLZ)
+
+In the above example Animal interface defines basic behaviour of animal. As we can't use properties inside of an interface, to define animal properties AnimalProperties struct is defined. This could be argued as a drawback of Golang, for not to having properties inside interface. But it doesn’t actually cause any serious issues. Now ``Mammal`` and ``Fish`` both interface defines the specific behaviour, it also inherits the behaviour of an ``Animal`` by embedding the Animal interface. Here ``MakeSound()`` and ``TellName()`` is implemented by Cat, Dog and GoldFish by overriding the virtual methods. Another level of type generalization is defined by specifying the interface ``Mammal`` and ``Fish``. 
+
+Overriding by defining a method could be problemetic but Golang type checking at compiler is so strong that it could actually prevent the runtime errors. Now if we try to assign a ``Fish`` is a ``Animal`` it will cause a compile time error. 
+```go
+mammal = fish //(This will cause compile time error: Fish does not implement Mammal (missing FeedMilk method))
+```
+When the interface is used as a parameter type, you can call the function with any struct implementing the interface defined behaviour. The function works for every class implementing the interface. Below is an example of a function that describes how interfaces could be used to define runtime behaviour and extend the usability of a function. Below is an example.
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+type Animal interface {
+        TellName()
+        MakeSound()
+}
+
+type AnimalProperties struct {
+        Name  string
+        Sound string
+}
+
+type Cat struct {
+        AnimalProperties
+        MeaoStrength int
+}
+
+type Dog struct {
+        AnimalProperties
+        BarkStrength int
+}
+
+type GoldFish struct {
+        AnimalProperties
+        SwmSpeed int
+}
+
+func (animalp AnimalProperties) TellName() {
+        fmt.Printf("I am %s", animalp.Name)
+}
+
+func (cat Cat) MakeSound() {
+        fmt.Printf("%s at %d !", cat.AnimalProperties.Sound, cat.MeaoStrength)
+}
+
+func (dog Dog) MakeSound() {
+        fmt.Printf("%s at %d !", dog.AnimalProperties.Sound, dog.BarkStrength)
+}
+
+func (fish GoldFish) MakeSound() {
+        fmt.Printf("%s %s !", fish.AnimalProperties.Sound, fish.AnimalProperties.Sound)
+}
+
+/* Introduce work for any type that implements TellName() and MakeSound() */
+func Introduce(animal Animal) {
+        animal.MakeSound()
+        fmt.Printf(" Ok so you already can guess who I'm. ")
+        animal.TellName()
+        fmt.Printf("\n")
+}
+
+func main() {
+        var animals [3]Animal
+        var dog Dog = Dog{AnimalProperties{"pug-dog", "Vouuuuu"}, 2}
+        animals[0] = dog
+        var cat Cat = Cat{AnimalProperties{"persian-cat", "Meawww"}, 3}
+        animals[1] = cat
+        var fish GoldFish = GoldFish{AnimalProperties{"gold-fish", "bloob"}, 4}
+        animals[2] = fish
+        for _, animal := range animals {
+                Introduce(animal)
+        }
+}
+
+/* Output:
+Vouuuuu at 2 ! Ok so you already can guess who I'm. I am pug-dog
+Meawww at 3 ! Ok so you already can guess who I'm. I am persian-cat
+bloob bloob ! Ok so you already can guess who I'm. I am gold-fish
+*/
+```
+[Example 7 PlayGround ^](https://play.golang.org/p/gmk_MMYkPD)
+
+Empty interface ``interface{}`` type could be used in order to match any interface, or any type. So a function can accept any type by using the ``interface{}`` type defined as a parameter. Like the example below.
+```go
+type Animal interface {
+	TellName()
+	MakeSound()
+}
+
+type AnimalProperties struct {
+	Name  string
+	Sound string
+}
+
+type Cat struct {
+	AnimalProperties
+	MeaoStrength int
+}
+
+type Dog struct {
+	AnimalProperties
+	BarkStrength int
+}
+
+type GoldFish struct {
+	AnimalProperties
+	SwmSpeed int
+}
+
+func (animalp AnimalProperties) TellName() {
+	fmt.Printf("I am %s", animalp.Name)
+}
+
+func (cat Cat) MakeSound() {
+	fmt.Printf("%s at %d !", cat.AnimalProperties.Sound, cat.MeaoStrength)
+}
+
+func (dog Dog) MakeSound() {
+	fmt.Printf("%s at %d !", dog.AnimalProperties.Sound, dog.BarkStrength)
+}
+
+func (fish GoldFish) MakeSound() {
+	fmt.Printf("%s %s !", fish.AnimalProperties.Sound, fish.AnimalProperties.Sound)
+}
+
+/* PrintAll is a function that dumps all type Data */
+func PrintAll(vals []interface{}) {
+	for _, val := range vals {
+		fmt.Println(val)
+	}
+}
+
+func main() {
+	
+	var dog Dog = Dog{AnimalProperties{"pug-dog", "Vouuuuu"}, 2}
+	var cat Cat = Cat{AnimalProperties{"persian-cat", "Meawww"}, 3}
+	var fish GoldFish = GoldFish{AnimalProperties{"gold-fish", "bloob"}, 4}
+	animals := []interface{}{dog, cat, fish}
+	PrintAll(animals)
+}
+/* output:
+{{pug-dog Vouuuuu} 2}
+{{persian-cat Meawww} 3}
+{{gold-fish bloob} 4}
+*/
+```
+[Example 8 PlayGround ^](https://play.golang.org/p/LaGNEq9lVC)
+The ``val``’s type is actually what type that has been passed at runtime.
+
+#### Pointer
+
+Just like ``C`` Golang also support the pointers or reference. A pointer holds the memory address of a variable. The type ``*T`` is a pointer to a ``T`` type. Its zero value is ``nil``. The ``&`` operator generates a pointer to its operand. The ``*`` operator denotes the pointer's underlyings. 
+```go
+func main() {
+	var p *int
+	i := 42
+	p = &i
+	fmt.Println(*p) // will print 42
+	*p = 21
+	fmt.Println(*p) // will print 21
+}
+/* Output:
+42
+21
+*/
+```
+[Example 9 PlayGround ^](https://play.golang.org/p/6z4933PhWh)
 
 To be Continued ...
